@@ -24,6 +24,7 @@ int main (int argc, char *argv[])
    int    proc0_size;   /* Size of proc 0's subarray */
    int    prime;        /* Current prime */
    int    size;         /* Elements in 'marked' */
+   int    odd_size;
 
    MPI_Init (&argc, &argv);
 
@@ -47,9 +48,10 @@ int main (int argc, char *argv[])
       last array elements */
 
    low_value = 2 + id*(n-1)/p;
+   if(low_value % 2 == 0) low_value++;
    high_value = 1 + (id+1)*(n-1)/p;
    size = high_value - low_value + 1;
-
+   
    /* Bail out if all the primes used for sieving are
       not all held by process 0 */
 
@@ -61,9 +63,13 @@ int main (int argc, char *argv[])
       exit (1);
    }
 
+   if(size % 2 == 0) odd_size = size / 2;
+   else odd_size = (size + 1) / 2;
+   
+
    /* Allocate this process's share of the array. */
 
-   marked = (char *) malloc (size);
+   marked = (char *) malloc (odd_size);
 
    if (marked == NULL) {
       printf ("Cannot allocate enough memory\n");
@@ -71,25 +77,40 @@ int main (int argc, char *argv[])
       exit (1);
    }
 
-   for (i = 0; i < size; i++) marked[i] = 0;
+   // memset
+   for (i = 0; i < odd_size; i++) marked[i] = 0;
+   
    if (!id) index = 0;
-   prime = 2;
+
+   prime = 3;
    do {
-      if (prime * prime > low_value)
-         first = prime * prime - low_value;
+      // finding "first"
+      if (prime * prime > low_value){
+         first = (prime * prime - low_value) / 2;
+      }
       else {
          if (!(low_value % prime)) first = 0;
-         else first = prime - (low_value % prime);
+         else{
+            if((low_value % prime) % 2 != 0)
+               first = (prime - (low_value % prime)) / 2;
+            else first = prime - (low_value % prime) / 2;
+         } 
       }
-      for (i = first; i < size; i += prime) marked[i] = 1;
+
+      //  sieving
+      for (i = first; i < odd_size; i += prime) marked[i] = 1;
+      
       if (!id) {
          while (marked[++index]);
-         prime = index + 2;
+         prime = index * 2 + 3;
       }
+      
       if (p > 1) MPI_Bcast (&prime,  1, MPI_INT, 0, MPI_COMM_WORLD);
    } while (prime * prime <= n);
+
+   // counting
    count = 0;
-   for (i = 0; i < size; i++)
+   for (i = 0; i < odd_size; i++)
       if (!marked[i]) count++;
    if (p > 1) MPI_Reduce (&count, &global_count, 1, MPI_INT, MPI_SUM,
       0, MPI_COMM_WORLD);
@@ -103,8 +124,9 @@ int main (int argc, char *argv[])
    /* Print the results */
 
    if (!id) {
+      // + 1 cz' 2 is not counted
       printf ("There are %d primes less than or equal to %d\n",
-         global_count, n);
+         global_count + 1, n);
       printf ("SIEVE (%d) %10.6f\n", p, elapsed_time);
    }
    MPI_Finalize ();
