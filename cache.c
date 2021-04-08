@@ -54,10 +54,10 @@ int main(int argc, char *argv[])
       well as the integers represented by the first and
       last array elements */
    low_value = 2 + id * ((n - 1) / p);
-   if (low_value % 2 == 0)
+   if (!(low_value % 2))
       low_value++;
    high_value = 1 + (id + 1) * ((n - 1) / p);
-   if (high_value % 2 != 0)
+   if (high_value % 2)
       high_value++;
    size = high_value - low_value + 1;
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
       for (j = 1; j <= prm[0] && i * prm[j] <= (int)sqrt((double)n); j++)
       {
          visit[i * prm[j]] = 1;
-         if (i % prm[j] == 0)
+         if (!(i % prm[j]))
          {
             break;
          }
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
       do
       {
          prime = prm[index++];
-         if (prime == 0)
+         if (!prime)
             break;
 
          // finding "first"
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                first = 0;
             else
             {
-               if ((low % prime) % 2 != 0)
+               if ((low % prime) % 2)
                   first = (prime - (low % prime)) >> 1;
                else
                   first = prime - ((low % prime) >> 1);
