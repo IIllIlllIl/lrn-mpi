@@ -30,6 +30,8 @@ int main(int argc, char *argv[])
    int size; /* Elements in 'marked' */
    int odd_size;
    int block;
+   int sqrt_n;
+   int sqrt_high;
 
    MPI_Init(&argc, &argv);
 
@@ -49,14 +51,15 @@ int main(int argc, char *argv[])
    }
 
    n = atoi(argv[1]);
+   sqrt_n = (int)sqrt((double)n);
 
    /* Figure out this process's share of the array, as
       well as the integers represented by the first and
       last array elements */
-   low_value = 2 + id * ((n - 1) / p);
+   low_value = 2 + (long long)id * (n - 1) / p;
    if (!(low_value % 2))
       low_value++;
-   high_value = 1 + (id + 1) * ((n - 1) / p);
+   high_value = 1 + (long long)(id + 1) * (n - 1) / p;
    if (high_value % 2)
       high_value++;
    size = high_value - low_value + 1;
@@ -64,7 +67,7 @@ int main(int argc, char *argv[])
    /* Bail out if all the primes used for sieving are
       not all held by process 0 */
    proc0_size = (n - 1) / p;
-   if ((2 + proc0_size) < (int)sqrt((double)n))
+   if ((2 + proc0_size) < sqrt_n)
    {
       if (!id)
          printf("Too many processes\n");
@@ -83,21 +86,21 @@ int main(int argc, char *argv[])
    }
 
    // prime in 0 ~ sqrt(n)
-   visit = (char *)malloc((int)sqrt((double)n));
-   prm = (int *)malloc((int)sqrt((double)n) * sizeof(int));
+   visit = (char *)malloc(sqrt_n);
+   prm = (int *)malloc(sqrt_n * sizeof(int));
 
-   for (i = 0; i < (int)sqrt((double)n); i++)
+   for (i = 0; i < sqrt_n; i++)
       visit[i] = 0;
-   for (i = 0; i < (int)sqrt((double)n); i++)
+   for (i = 0; i < sqrt_n; i++)
       prm[i] = 0;
 
-   for (i = 2; i <= (int)sqrt((double)n); i++)
+   for (i = 2; i <= sqrt_n; i++)
    {
       if (!visit[i])
       {
          prm[++prm[0]] = i;
       }
-      for (j = 1; j <= prm[0] && i * prm[j] <= (int)sqrt((double)n); j++)
+      for (j = 1; j <= prm[0] && i * prm[j] <= sqrt_n; j++)
       {
          visit[i * prm[j]] = 1;
          if (!(i % prm[j]))
@@ -108,10 +111,12 @@ int main(int argc, char *argv[])
    }
 
    count = 0;
+   sqrt_high = (int)sqrt((double)high);
 
    for (low = low_value; low < high_value; low += (block << 1))
    {
       high = MIN(low + (block << 1) - 1, high_value);
+      sqrt_high = (int)sqrt((double)high);
 
       // memset
       for (i = 0; i < block; i++)
@@ -147,7 +152,7 @@ int main(int argc, char *argv[])
          //  sieving
          for (i = first; i < ((high - low + 1) >> 1); i += prime)
             marked[i] = 1;
-      } while (prime <= (int)sqrt((double)high));
+      } while (prime <= sqrt_high);
 
       // counting
       for (i = 0; i < ((high - low + 1) >> 1); i++)
