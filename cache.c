@@ -4,9 +4,6 @@
 #include <stdlib.h>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define c(x) printf("%s\n", #x)
-#define e(x) printf("%s = %d\n", #x, x)
-
 #define cache 12 * 1024 * 1024
 
 int main(int argc, char *argv[])
@@ -15,12 +12,12 @@ int main(int argc, char *argv[])
    double elapsed_time; /* Parallel execution time */
    int first;           /* Index of first multiple */
    int global_count;    /* Global prime count */
-   int high_value;      /* Highest value on this proc */
    int i;
    int j;
-   int id;        /* Process ID number */
-   int index;     /* Index of current prime */
-   int low_value; /* Lowest value on this proc */
+   int id;         /* Process ID number */
+   int index;      /* Index of current prime */
+   int low_value;  /* Lowest value on this proc */
+   int high_value; /* Highest value on this proc */
    int low;
    int high;
    char *marked;   /* Portion of 2,...,'n' */
@@ -29,7 +26,7 @@ int main(int argc, char *argv[])
    int proc0_size; /* Size of proc 0's subarray */
    int prime;      /* Current prime */
    int *prm;
-   int *visit;
+   char *visit;
    int size; /* Elements in 'marked' */
    int odd_size;
    int block;
@@ -56,10 +53,10 @@ int main(int argc, char *argv[])
    /* Figure out this process's share of the array, as
       well as the integers represented by the first and
       last array elements */
-   low_value = 2 + id * (n - 1) / p;
+   low_value = 2 + id * ((n - 1) / p);
    if (low_value % 2 == 0)
       low_value++;
-   high_value = 1 + (id + 1) * (n - 1) / p;
+   high_value = 1 + (id + 1) * ((n - 1) / p);
    if (high_value % 2 != 0)
       high_value++;
    size = high_value - low_value + 1;
@@ -75,14 +72,8 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
-   // odd_size
-   if (size % 2 == 0)
-      odd_size = size / 2;
-   else
-      odd_size = (size + 1) / 2;
-
    /* Allocate this process's share of the array. */
-   block = (cache / sizeof(int)) / 2;
+   block = (cache / sizeof(int)) / p;
    marked = (char *)malloc(block);
    if (marked == NULL)
    {
@@ -92,7 +83,7 @@ int main(int argc, char *argv[])
    }
 
    // prime in 0 ~ sqrt(n)
-   visit = (int *)malloc((int)sqrt((double)n) * sizeof(int));
+   visit = (char *)malloc((int)sqrt((double)n));
    prm = (int *)malloc((int)sqrt((double)n) * sizeof(int));
 
    for (i = 0; i < (int)sqrt((double)n); i++)
@@ -118,17 +109,14 @@ int main(int argc, char *argv[])
 
    count = 0;
 
-   for (low = low_value; low < high_value; low += 2 * block)
+   for (low = low_value; low < high_value; low += (block << 1))
    {
-      high = MIN(low + 2 * block - 1, high_value);
+      high = MIN(low + (block << 1) - 1, high_value);
 
       // memset
       for (i = 0; i < block; i++)
       {
-         if (i < (high - low + 1) / 2)
-            marked[i] = 0;
-         else
-            marked[i] = 1;
+         marked[i] = 0;
       }
 
       index = 2;
@@ -139,9 +127,9 @@ int main(int argc, char *argv[])
             break;
 
          // finding "first"
-         if (prime * prime > low)
+         if (prime > (int)sqrt((double)low))
          {
-            first = (prime * prime - low) / 2;
+            first = (prime * prime - low) >> 1;
          }
          else
          {
@@ -150,19 +138,19 @@ int main(int argc, char *argv[])
             else
             {
                if ((low % prime) % 2 != 0)
-                  first = (prime - (low % prime)) / 2;
+                  first = (prime - (low % prime)) >> 1;
                else
-                  first = prime - (low % prime) / 2;
+                  first = prime - ((low % prime) >> 1);
             }
          }
 
          //  sieving
-         for (i = first; i < (high - low + 1) / 2; i += prime)
+         for (i = first; i < ((high - low + 1) >> 1); i += prime)
             marked[i] = 1;
-      } while (prime * prime <= high);
+      } while (prime <= (int)sqrt((double)high));
 
       // counting
-      for (i = 0; i < (high - low + 1) / 2; i++)
+      for (i = 0; i < ((high - low + 1) >> 1); i++)
          if (!marked[i])
          {
             count++;
