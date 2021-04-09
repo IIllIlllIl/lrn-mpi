@@ -1,11 +1,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define n 1000000000
 
 int main()
 {
-    int i, j;
+    int i, j, n;
+    scanf("%d", &n);
     char *visit = (char *)malloc(n);
     int *prm = (int *)malloc(n * sizeof(int));
 
@@ -30,5 +30,10 @@ int main()
         }
     }
 
-    printf("%d", *prm);
+    printf("%d\n", *prm);
+
+    int *index;
+    index = ++prm;
+    for (i = 0; i < 10; i++)
+        printf("%d ", *(++index));
 }
