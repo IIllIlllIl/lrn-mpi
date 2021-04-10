@@ -9,8 +9,8 @@
 
 int main(int argc, char *argv[])
 {
-   int count;           /* Local prime count */
    double elapsed_time; /* Parallel execution time */
+   int count;           /* Local prime count */
    int first;           /* Index of first multiple */
    int global_count;    /* Global prime count */
    int i;
@@ -22,20 +22,20 @@ int main(int argc, char *argv[])
    int high_value; /* Highest value on this proc */
    int low;
    int high;
-   char *marked;   /* Portion of 2,...,'n' */
    int n;          /* Sieving from 2, ..., 'n' */
    int p;          /* Number of processes */
    int proc0_size; /* Size of proc 0's subarray */
    int prime;      /* Current prime */
    int prime_mult_2;
    int *prm;
-   char *visit;
    int size; /* Elements in 'marked' */
    int odd_size;
    int block;
    int sqrt_n;
    int sqrt_high;
    int block_size;
+   char *visit;
+   char *marked; /* Portion of 2,...,'n' */
 
    MPI_Init(&argc, &argv);
 
@@ -56,22 +56,23 @@ int main(int argc, char *argv[])
 
    n = atoi(argv[1]);
    sqrt_n = (int)sqrt((double)n);
+   const float t = (1.0f / p);
    if (n > 1000)
    {
       /* Figure out this process's share of the array, as
       well as the integers represented by the first and
       last array elements */
-      low_value = 2 + (long long)id * (n - 1) / p;
+      low_value = 2 + (long long)id * (n - 1) * t;
       if (!(low_value & 0x1))
          low_value++;
-      high_value = 1 + (long long)(id + 1) * (n - 1) / p;
+      high_value = 1 + (long long)(id + 1) * (n - 1) * t;
       if (high_value & 0x1)
          high_value++;
       size = high_value - low_value + 1;
 
       /* Bail out if all the primes used for sieving are
       not all held by process 0 */
-      proc0_size = (n - 1) / p;
+      proc0_size = (n - 1) * t;
       if ((2 + proc0_size) < sqrt_n)
       {
          if (!id)
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
       }
 
       /* Allocate this process's share of the array. */
-      block = (cache / sizeof(int)) / p;
+      block = (cache / sizeof(int)) * t;
       marked = (char *)malloc(block);
       if (marked == NULL)
       {
@@ -92,7 +93,7 @@ int main(int argc, char *argv[])
 
       sqrt_n++;
 
-      // prime in 0 ~ sqrt(n)
+      // trime in 0 ~ sqrt(n)
       visit = (char *)malloc(sqrt_n);
       prm = (int *)malloc(sqrt_n * sizeof(int));
 
@@ -200,16 +201,16 @@ int main(int argc, char *argv[])
       well as the integers represented by the first and
       last array elements */
 
-      low_value = 2 + id * (n - 1) / p;
+      low_value = 2 + id * (n - 1) * t;
       if (!(low_value & 0x1))
          low_value++;
-      high_value = 1 + (id + 1) * (n - 1) / p;
+      high_value = 1 + (id + 1) * (n - 1) * t;
       size = high_value - low_value + 1;
 
       /* Bail out if all the primes used for sieving are
       not all held by process 0 */
 
-      proc0_size = (n - 1) / p;
+      proc0_size = (n - 1) * t;
 
       if ((2 + proc0_size) < sqrt_n)
       {
@@ -332,8 +333,12 @@ int main(int argc, char *argv[])
    if (!id)
    {
       // + 1 cz' 2 is not counted
+      if (n > 2)
+      {
+         global_count++;
+      }
       printf("There are %d primes less than or equal to %d\n",
-             global_count + 1, n);
+             global_count, n);
       printf("SIEVE (%d) %10.6f\n", p, elapsed_time);
    }
    MPI_Finalize();
